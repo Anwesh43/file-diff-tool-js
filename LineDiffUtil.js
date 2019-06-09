@@ -15,6 +15,12 @@ class LineDiffUtil {
         })
     }
 
+    static deleteModifiedLines(map, list, changes) {
+        changes.forEach((change) => {
+            delete(map[list[change.oldIndex]])
+        })
+    }
+
     static compare(oldLines, newLines) {
         const insertions = []
         const modifications = []
@@ -26,19 +32,14 @@ class LineDiffUtil {
             const oldIndex = oldLineIndexMap[line]
             const newIndex = newLineIndexMap[line]
             if (!newIndex) {
-                changes.push({line, index})
+                changes.push({line, oldIndex})
+                delete oldLineIndexMap[line]
             }
             else {
-                if (oldIndex != newIndex && changes.length != 0) {
-                    if (newIndex < oldIndex) {
-                        LineDiffUtil.appendToList(deletions, changes)
-                    } else {
-                        LineDiffUtil.appendToList(insertions, changes)
-                    }
-                    changes = []
-                }
-
-                if (oldIndex == newIndex && changes.length > 0) {
+                if (newIndex < oldIndex) {
+                    LineDiffUtil.appendToList(deletions, changes)
+                } else {
+                    LineDiffUtil.deleteModifiedLines(newLineIndexMap, newLines, changes)
                     LineDiffUtil.appendToList(modifications, changes)
                 }
                 delete newLineIndexMap[line]
@@ -57,8 +58,8 @@ class LineDiffUtil {
     }
 
     static compareFiles(oldFile, newFile) {
-        const oldLines = fs.readFileSync(oldFile)
-        const newLines = fs.readFileSync(newFile)
+        const oldLines = fs.readFileSync(oldFile).toString().split("\n")
+        const newLines = fs.readFileSync(newFile).toString().split("\n")
         return LineDiffUtil.compare(oldLines, newLines)
     }
 }
